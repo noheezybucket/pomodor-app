@@ -1,5 +1,6 @@
 import './App.css'
 import {useEffect, useRef, useState} from "react";
+import beep from "./assets/beep.mp3"
 
 function App() {
 
@@ -7,47 +8,68 @@ function App() {
     const [sessionLength, setSessionLength] = useState(25)
     const [timeleft, setTimeleft] = useState(sessionLength * 60)
     const [isPlaying, setIsPlaying] = useState(false)
+    // const [isBreakTime, setIsBreakTime] = useState(false)
     const intervalRef = useRef(null)
+    const breakRef = useRef(false)
+    const audioRef = useRef(null)
+
+    useEffect(() => {
+        setTimeleft(sessionLength * 60)
+    }, [sessionLength]);
 
     const formatTime = (time) => {
         let minutes = Math.floor(time / 60).toString().padStart(2, '0')
         let seconds = (time % 60).toString().padStart(2, '0')
-        console.log(`${minutes}:${seconds}`)
         return `${minutes}:${seconds}`
     }
 
-    useEffect(() => {
-        setTimeleft(formatTime(sessionLength * 60))
 
-    }, [sessionLength]);
 
     const playTimer = () => {
-        if(isPlaying){
-           intervalRef.current = setInterval(() => {
+        if(!isPlaying) {
+            setIsPlaying(true);
+
+            intervalRef.current = setInterval(() => {
                 setTimeleft((prev) => {
-
-                    console.log(prev)
-                    return prev - 1
-                })
-            },1000)
-            setIsPlaying(!isPlaying)
-
+                    if(prev > 0) {
+                        return prev - 1;
+                    } else {
+                        if(!breakRef.current) {
+                            audioRef.current.play();
+                            breakRef.current = true;
+                            return breakLength * 60;
+                        } else {
+                            audioRef.current.play();
+                            breakRef.current = false;
+                            return sessionLength * 60;
+                        }
+                    }
+                });
+            }, 1000);
+        } else {
+            setIsPlaying(false);
+            clearInterval(intervalRef.current);
         }
-
     }
 
     const resetTimer = () => {
+        clearInterval(intervalRef.current)
         setSessionLength(25)
+        setTimeleft(sessionLength * 60)
         setBreakLength(5)
         setIsPlaying(false)
+        breakRef.current = false
+        audioRef.current.currentTime = 0
+        audioRef.current.pause()
     }
 
   return (
     <>
       <div id="app">
-          <h1>🅿ush Up</h1>
+          <h1>takku</h1>
           {/* eslint-disable-next-line react/no-unescaped-entities */}
-          <p><b>'Never give up life is a b***, so be a dog.'</b> <br/> Some dude</p>
+          <p><b>Never give up</b> <br/> Some dude</p>
+          <audio src={beep} controls={false} id="beep" ref={audioRef}></audio>
           <div className="setting">
               {/*break*/}
               <div>
@@ -119,7 +141,7 @@ function App() {
           </div>
 
           <div id="timer">
-              <h2 id="timer-label">Session</h2>
+              <h2 id="timer-label">{breakRef.current ? "Break" :"Session"}</h2>
               <div id="time-left">{formatTime(timeleft)}</div>
           </div>
 
